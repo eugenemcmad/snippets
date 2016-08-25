@@ -12,13 +12,39 @@ var (
 
 func TestAfter(t *testing.T) {
 
-	go f2()
-	for i := 0; i < 300; i++ {
+	max := 300
+	x := make(chan bool, 10)
+	d := 10 * time.Second
+	go breaker(x, d)
+	for i := 0; i < max; i++ {
 		time.Sleep(30 * time.Millisecond)
 		fmt.Print(".")
+		if _test_stop_signal {
+			fmt.Println("\n TestAfter() got '_test_stop_signal'")
+			return
+		}
+		if i == max/2 {
+			x <- true
+		}
 	}
 
-	fmt.Println("\n exit")
+	time.Sleep(1 * time.Second)
+	fmt.Println("\n TestAfter() exit")
+}
+
+func breaker(x chan bool, d time.Duration) {
+
+	select {
+
+	case <-time.After(d):
+		_test_stop_signal = true
+		fmt.Println("\n breaker() timed out")
+		return
+
+	case <-x:
+		fmt.Println("\n breaker() exit ok")
+		return
+	}
 }
 
 func f2() {
