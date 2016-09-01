@@ -21,7 +21,7 @@ func TestCalendarUpsert_PutObject(t *testing.T) {
 	if err != nil {
 		t.Errorf("aerospikedb.GetClient(%v) %v \n", g.AsHostsTestX, err)
 	}
-	//cal := Calendar{pid: 10101010, dayStart: 1234567890, slots: map[int64]int{1000000000: 10, 2000000000: 20}}
+
 	cal, err := Get(acp, pid, dayStart)
 	if err != nil {
 		fmt.Printf("Get() err: %v \n", err)
@@ -45,15 +45,6 @@ func Get(client *as.Client, pid int64, startOfDay int64) (*Calendar, error) {
 		return nil, err
 	}
 
-	/*var tmp Calendar
-	tk, _ := as.NewKey(g.ASPNameSpace, g.ASPCalendarsSet, 0)
-	err = client.GetObject(nil, tk, &tmp)
-	if err != nil {
-		fmt.Printf("client.GetObject(%s.%s.%v) err: %v \n", g.ASPNameSpace, g.ASPCalendarsSet, 0, err)
-	}
-	fmt.Printf("client.GetObject(%s.%s.%v) cal: %+v \n", g.ASPNameSpace, g.ASPCalendarsSet, 0, tmp)
-	*/
-
 	ok, err := client.Exists(nil, key)
 	if err != nil {
 		return nil, err
@@ -71,14 +62,6 @@ func Get(client *as.Client, pid int64, startOfDay int64) (*Calendar, error) {
 
 	}
 
-	//c := Calendar{pid: -1, dayStart: 2, slots: make(map[int64]int)}
-	//var c Calendar
-	/*err = client.GetObject(nil, key, &c)
-	if err != nil {
-		fmt.Printf("client.GetObject(%s.%s.%v) err: %v \n", g.ASPNameSpace, g.ASPCalendarsSet, sk, err)
-	}
-	fmt.Printf("client.GetObject(%s.%s.%v) cal: %+v \n", g.ASPNameSpace, g.ASPCalendarsSet, sk, c)
-	*/
 	rec, err := client.Get(nil, key)
 	if err != nil {
 		fmt.Printf("client.Get(%s.%s.%v) err: %v \n", g.ASPNameSpace, g.ASPCalendarsSet, sk, err)
@@ -179,4 +162,36 @@ type Calendar struct {
 	pid      int64         `as:pid`       // Profile ID.
 	dayStart int64         `as:day_start` // Start of a day by profile's timezone in UTC.
 	slots    map[int64]int `as:slots`     // 15-minutes send slot for a day of a calendar.
+}
+
+func TestExecuteCleanHBUDF(t *testing.T) {
+	hosts := []*as.Host{as.NewHost("127.0.0.1", g.AS_DEF_PORT)}
+	cli, err := aerospikedb.GetClient(hosts)
+	if err != nil {
+		t.Errorf("aerospikedb.GetClient(%v) %v \n", hosts, err)
+		return
+	}
+
+	pids := []int64{
+		2773078823355393185,
+		4247475075215243666,
+		4032530127856820284,
+		5652457131391091506,
+	}
+
+	for _, pid := range pids {
+
+		asKey, err := as.NewKey(g.ASPNameSpace, g.ASPProfilesSet, pid)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		execRes, err := cli.Execute(nil, asKey, "profiles", "cln_hb")
+		fmt.Printf("pid: %d, %v\n", pid, execRes)
+		if err != nil {
+			fmt.Printf("Execute result=%v, error=%v\n", execRes, err)
+			return
+		}
+	}
 }
