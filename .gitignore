@@ -6,3 +6,5 @@ debug.*
 /.idea/
 *.iml
 temp.*
+/Godeps/
+/vendor/
