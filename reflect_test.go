@@ -10,13 +10,13 @@ func TestTypeSwitch(t *testing.T) {
 	var o interface{}
 	ss := []string{"s", "s"}
 	o = ss
-	switch t := o.(type) {
+	switch x := o.(type) {
 	default:
-		fmt.Printf("unexpected type %T\n", t)
+		fmt.Printf("unexpected type %T\n", x)
 	case []string:
-		fmt.Printf("[]string %v\n", t)
+		fmt.Printf("[]string %v\n", x)
 	case []interface{}:
-		fmt.Printf("[]interface{} %v\n", t)
+		fmt.Printf("[]interface{} %v\n", x)
 	}
 }
 
