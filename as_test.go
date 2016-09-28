@@ -195,3 +195,42 @@ func TestExecuteCleanHBUDF(t *testing.T) {
 		}
 	}
 }
+
+func TestGetObject(t *testing.T) {
+
+	cli, err := aerospikedb.GetClient(g.AsHostsTestX)
+	if err != nil {
+		t.Errorf("aerospikedb.GetClient(%v) %v \n", g.AsHostsTestX, err)
+	}
+
+	//k00, err := as.NewKey("main", "profiles", 0)
+	key, err := as.NewKey("main", "profiles", 2852695508788684450)
+	if err != nil {
+		t.Fatal(err)
+	}
+	obj := Profile{}
+	//err = cli.GetObject(nil, k00, &obj)
+	err = cli.GetObject(nil, key, &obj)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("%+v", obj)
+}
+
+// Struct represents profile record in 'profiles' bin in Aerospike
+type Profile struct {
+	Email   string  `as:"email"`
+	EDG     string  `as:"edg"`
+	Created int64   `as:"created"`
+	HB      int     `as:"HB"`
+	Optins  []optin `as:"optin"`
+}
+
+// Partners (from 'optin' Aerospike bin)
+type optin struct {
+	RegDate   interface{} `as:"regdate"`
+	PartnerID interface{} `as:"partnerid"`
+	SourceID  interface{} `as:"sourceid"`
+	SourceURL string      `as:"sourceurl"`
+	IP        string      `as:"ip"`
+}
