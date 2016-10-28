@@ -1,16 +1,16 @@
 package tests
 
 import (
+	"net/http"
 	"testing"
+	"time"
 	"xr/configuration"
 	xn "xr/nsq"
 	nc "xr/nsq/config"
-
-	"time"
 	"xr/track-server/actions"
 	g "xr/xutor/global"
 
-	"net/http"
+	"strconv"
 
 	"github.com/bitly/go-nsq"
 )
@@ -19,6 +19,28 @@ const (
 	_TEST_PROF_ID int64 = 2852695508788684450 // Test value for profile id
 	_TEST_SITE_ID int64 = 1                   // Test value for profile site id
 )
+
+func TestPutProfToNSQ(t *testing.T) {
+	var err error
+	var npp *nsq.Producer
+
+	nsqCfg := getNsqCfg()
+	npp, err = nsq.NewProducer(nsqCfg.DaemonAddr, nsq.NewConfig())
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	for i := 0; i < 100; i++ {
+		s := `apikey=os6peow476hmf53t&email=test` + strconv.Itoa(i%10) +
+			`%40gmail.com&fname=test&token=68fffdf7dfcac7ce2c84092a3297fbff&ip=94.231.116.43&sourceurl=https%3A%2F%2Fdrivingtests.us&regdate=2016-10-24&utmsource=a&utmmedium=b&status=11`
+		err = xn.Publish(npp, xn.GET_PROFILES_TOPIC, []byte(s))
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	}
+}
 
 func TestFillTrackingEvents(t *testing.T) {
 	var err error
