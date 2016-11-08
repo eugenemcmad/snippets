@@ -12,7 +12,12 @@ import (
 
 	"strconv"
 
+	"fmt"
+
+	"xr/xutor/data"
+
 	"github.com/bitly/go-nsq"
+	"github.com/golang/glog"
 )
 
 const (
@@ -95,6 +100,48 @@ func TestFillTrackingEvents(t *testing.T) {
 	// export CONSUL_HTTP_ADDR=23.251.134.57:8500
 	// printenv CONSUL_HTTP_ADDR
 	// CGO_ENABLED=0 go test -v xr/snippets -run ^TestFillTrackingEvents$
+}
+
+func TestReadDomsgsDeliveryEvents(t *testing.T) {
+
+	var err error
+	var cons *nsq.Consumer
+
+	nsqCfg := getNsqCfg()
+
+	// Create new nsq consumer
+	cons, err = nsq.NewConsumer(xn.DOMSGS_DELIVERY_TOPIC, xn.DOMSGS_DELIVERY_STATS_CHAN, nsq.NewConfig())
+	if err != nil {
+		t.Errorf("nsq.NewConsumer(%s, %s) err: %v\n",
+			xn.GET_PROFILES_TOPIC, xn.GET_PROFILES_DATA_CHAN, err)
+		return
+	} else {
+		fmt.Println("nsq.NewConsumer() ok.")
+	}
+
+	cons.AddHandler(nsq.HandlerFunc(func(m *nsq.Message) error {
+
+		fmt.Println(string(m.Body))
+
+		ev, err := data.DeserializeDomsgsDeliveryEvent(m.Body)
+
+		fmt.Printf("%#v, (err:%v)\n", ev, err)
+
+		m.Finish()
+
+		return nil
+	}))
+
+	// Start nsq lookup
+	err = cons.ConnectToNSQLookupd(nsqCfg.LookupAddr)
+	if err != nil {
+		t.Error(err)
+		return
+	} else {
+		glog.Infof("ConnectToNSQLookupd(%v) successful.\n", nsqCfg.LookupAddr)
+	}
+
+	time.Sleep(time.Second * 5)
 }
 
 func getNsqCfg() nc.NSQConfig {
