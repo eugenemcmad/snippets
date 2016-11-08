@@ -37,7 +37,7 @@ func TestBuffer(t *testing.T) {
 func TestBuffer2(t *testing.T) {
 	var emln = "test@aol.com"
 	var eid = 555
-	var rs = 1478601200
+	var rs int64 = 1478601200
 
 	var buffer bytes.Buffer
 	buffer.WriteString(`{"email":"`)
@@ -45,7 +45,7 @@ func TestBuffer2(t *testing.T) {
 	buffer.WriteString(`","eid":"`)
 	buffer.WriteString(strconv.Itoa(eid))
 	buffer.WriteString(`","ers":"`)
-	buffer.WriteString(strconv.Itoa(rs))
+	buffer.WriteString(strconv.FormatInt(rs, 10))
 	buffer.WriteString(`"}`)
 
 	leadStr := buffer.String()
