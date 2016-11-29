@@ -33,3 +33,17 @@ func BenchmarkSprintf(b *testing.B) {
 	}
 	fmt.Println(s)
 }
+
+func TestUnmarshal(t *testing.T) {
+	js := `{"s":"str","i":10}`
+	o := new(jt)
+	e := json.Unmarshal([]byte(js), o)
+
+	fmt.Printf("%#v, %v\n", o, e)
+}
+
+type jt struct {
+	S  string
+	I  int
+	II int
+}
