@@ -3,7 +3,6 @@ package tests
 import (
 	"fmt"
 	"math/rand"
-	"strconv"
 	"testing"
 	"time"
 	"xr/xutor/ssdb"
@@ -73,23 +72,38 @@ func TestSsdbKeys(t *testing.T) {
 	}
 	defer conn.Close()
 	rand.Seed(time.Now().Unix())
-	resIncrOk, resInt := ssdb.IncrBy(conn, "key_"+strconv.Itoa(utils.RandInt(10))+"_"+strconv.Itoa(utils.RandInt(10)), "2")
-	fmt.Printf("err:%v, incr:%v,%v\n", err, resIncrOk, resInt)
-
+	for i := 0; i < 100; i++ {
+		resIncrOk, resInt := ssdb.IncrBy(conn,
+			fmt.Sprintf("%d_%04d_%d", utils.RandInt(100), utils.RandInt(100), utils.RandInt(100)),
+			2)
+		fmt.Print(err, resIncrOk, resInt)
+	}
 	fmt.Println(".................................")
 
-	res := conn.Cmd("keys", "", "", 100)
+	res := conn.Cmd("keys", "", "", 1000)
 	fmt.Printf("%+v\n", *res)
 	for _, d := range res.Data {
 		fmt.Println(d)
 	}
 	fmt.Println(".................................")
 
-	keys, err := ssdb.Keys(conn, "", "", 100)
+	keys, err := ssdb.Keys(conn, "", "", 1000)
 	fmt.Println(keys, err)
 	fmt.Println(".................................")
 
-	keys, err = ssdb.RKeys(conn, "", "", 100)
+	keys, err = ssdb.RKeys(conn, "", "", 1000)
+	fmt.Println(keys, err)
+	fmt.Println(".................................")
+
+	keys, err = ssdb.Keys(conn, "0_0012_", "0_0013_", 1000)
+	fmt.Println(keys, err)
+	fmt.Println(".................................")
+
+	keys, err = ssdb.Keys(conn, "0_0012_", "0_0013_", 1)
+	fmt.Println(keys, err)
+	fmt.Println(".................................")
+
+	keys, err = ssdb.Keys(conn, "0_0012_", "0_0012_", 1000)
 	fmt.Println(keys, err)
 	fmt.Println(".................................")
 
