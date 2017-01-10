@@ -3,6 +3,7 @@ package tests
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"testing"
 )
 
@@ -45,6 +46,17 @@ func TestErrSumMaps(t *testing.T) {
 	es.save(pref)
 }
 
+func TestInfSum(t *testing.T) {
+
+	var ais addInfSum
+
+	for i := 10; i > 0; i-- {
+		ais.put(fmt.Sprintf("%v Aol %v", i, i))
+	}
+	fmt.Println(ais)
+	ais.save()
+}
+
 // Error description stack with counter. No thread safe.
 type errInfSum struct {
 	m map[string]int
@@ -74,5 +86,34 @@ func (es *errInfSum) save(pref string) {
 		}
 		fmt.Printf("%s errors summary:%v\n", pref, sum)
 		es.m = make(map[string]int)
+	}
+}
+
+// Added decz summary
+type addInfSum struct {
+	sl []string
+}
+
+// Put part of decz to summary
+// args:
+//      -s: stat part description
+func (o *addInfSum) put(s string) {
+	if o.sl == nil {
+		o.sl = []string{}
+	}
+	o.sl = append(o.sl, s)
+}
+
+// Save to log
+func (o *addInfSum) save() {
+
+	sort.Strings(o.sl)
+
+	if len(o.sl) > 0 {
+		var sum string
+		for _, s := range o.sl {
+			sum += fmt.Sprintf("\n\t %s", s)
+		}
+		fmt.Printf("Add decz summary:%v\n", sum)
 	}
 }
