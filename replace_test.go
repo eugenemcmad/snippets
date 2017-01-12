@@ -12,7 +12,7 @@ import (
 	"github.com/dlclark/regexp2"
 )
 
-// 1000000	2280 ns/op
+// 1000000	7579 ns/op
 func Benchmark_Repl_TemplateReplace(b *testing.B) {
 	tmpl := template.New("tt")
 	template.Must(tmpl.Delims("${", "}").Parse("azaza ${ .Name } zazaz. "))
@@ -21,7 +21,7 @@ func Benchmark_Repl_TemplateReplace(b *testing.B) {
 	}
 }
 
-// 1000000	1216 ns/op
+// 1000000	1270 ns/op
 func Benchmark_Repl_RxReplaceAllString(b *testing.B) {
 	var rx = regexp.MustCompile(`\$\{([\w]{1,1000})\}`)
 	for i := 0; i < b.N; i++ {
@@ -29,7 +29,7 @@ func Benchmark_Repl_RxReplaceAllString(b *testing.B) {
 	}
 }
 
-// 1000000	1206 ns/op
+// 1000000	1246 ns/op
 func Benchmark_Repl_RxReplaceAll(b *testing.B) {
 	var rx = regexp.MustCompile(`\$\{([\w]{1,1000})\}`)
 	z := []byte(`azaza ${Name} zazaz. `)
@@ -39,7 +39,7 @@ func Benchmark_Repl_RxReplaceAll(b *testing.B) {
 	}
 }
 
-// 10000000	235 ns/op
+// 10000000	242 ns/op
 func Benchmark_Repl_StringsReplace(b *testing.B) {
 	k := `Name`
 	for i := 0; i < b.N; i++ {
@@ -48,7 +48,16 @@ func Benchmark_Repl_StringsReplace(b *testing.B) {
 	}
 }
 
-// 10000000	150 ns/op
+// 10000000	175 ns/op
+func Benchmark_Repl_StringsPrepReplace(b *testing.B) {
+	k := `Name`
+	k2 := `${` + k + `}`
+	for i := 0; i < b.N; i++ {
+		strings.Replace(`azaza ${Name} zazaz. `, k2, `Mary`, -1)
+	}
+}
+
+// 10000000	156 ns/op
 func Benchmark_Repl_BytesReplace(b *testing.B) {
 	k := `Name`
 	for i := 0; i < b.N; i++ {
@@ -57,8 +66,8 @@ func Benchmark_Repl_BytesReplace(b *testing.B) {
 	}
 }
 
-// 10000000	135 ns/op
-func Benchmark_Repl_BytesPreReplace(b *testing.B) {
+// 10000000	144 ns/op
+func Benchmark_Repl_BytesPrepReplace(b *testing.B) {
 	z := []byte(`azaza ${Name} zazaz. `)
 	k := `Name`
 	v := []byte(`Mary`)
@@ -68,7 +77,18 @@ func Benchmark_Repl_BytesPreReplace(b *testing.B) {
 	}
 }
 
-// 1000000	1218 ns/op
+// 10000000	144 ns/op
+func Benchmark_Repl_BytesPrep2Replace(b *testing.B) {
+	z := []byte(`azaza ${Name} zazaz. `)
+	k := `Name`
+	k2 := []byte(`${` + k + `}`)
+	v := []byte(`Mary`)
+	for i := 0; i < b.N; i++ {
+		bytes.Replace(z, k2, v, -1)
+	}
+}
+
+// 1000000	1234 ns/op
 // alexflint/go-restructure/regex
 func Benchmark_Repl_RxRestReplaceAllString(b *testing.B) {
 	z := `azaza ${Name} zazaz. `
@@ -78,7 +98,7 @@ func Benchmark_Repl_RxRestReplaceAllString(b *testing.B) {
 	}
 }
 
-// 1000000	1210 ns/op
+// 1000000	1226 ns/op
 // alexflint/go-restructure/regex
 func Benchmark_Repl_RxRestReplaceAll(b *testing.B) {
 	z := []byte(`azaza ${Name} zazaz. `)
@@ -89,7 +109,7 @@ func Benchmark_Repl_RxRestReplaceAll(b *testing.B) {
 	}
 }
 
-// 500000	2799 ns/op
+// 500000	2832 ns/op
 // dlclark/regexp2
 func Benchmark_Repl_Rx2Replace(b *testing.B) {
 	z := `azaza ${Name} zazaz. `

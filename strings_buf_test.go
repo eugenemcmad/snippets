@@ -8,57 +8,63 @@ import (
 	"strconv"
 )
 
-// 6150 ns/op
+// 6086 ns/op
 func Benchmark_SB_Sprintf(b *testing.B) {
 	var srcs = getTestStrSlice()
-
+	n := 0
 	for i := 0; i < b.N; i++ {
 		var res string
 		for j, _ := range srcs {
 			res = fmt.Sprintf("%s %s", res, srcs[j])
 		}
+		n += len(res)
 	}
 }
 
-// 3111 ns/op
+// 3086 ns/op
 func Benchmark_SB_StrPlusEq(b *testing.B) {
 	var srcs = getTestStrSlice()
-
+	n := 0
 	for i := 0; i < b.N; i++ {
 		var res string
 		for j, _ := range srcs {
 			res += srcs[j]
 			res += " "
 		}
+		n += len(res)
 	}
 }
 
-// 928 ns/op
+// 910 ns/op
 func Benchmark_SB_BufWrStr(b *testing.B) {
 	var srcs = getTestStrSlice()
-
+	n := 0
 	for i := 0; i < b.N; i++ {
+		var res string
 		var buf bytes.Buffer
 		for j, _ := range srcs {
 			buf.WriteString(srcs[j])
 			buf.WriteString(" ")
 		}
-		buf.String()
+		res = buf.String()
+		n += len(res)
 	}
 }
 
-// 928 ns/op
+// 919 ns/op
 func Benchmark_SB_BufWr(b *testing.B) {
 	var bsrcs = getTestBytesSlice()
 	var z = []byte(" ")
-
+	n := 0
 	for i := 0; i < b.N; i++ {
+		var res string
 		var buf bytes.Buffer
 		for j, _ := range bsrcs {
 			buf.Write(bsrcs[j])
 			buf.Write(z)
 		}
-		buf.String()
+		res = buf.String()
+		n += len(res)
 	}
 }
 
