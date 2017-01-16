@@ -3,8 +3,6 @@ package tests
 import (
 	"bytes"
 	"html/template"
-	"os"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -12,30 +10,33 @@ import (
 	"github.com/dlclark/regexp2"
 )
 
-// 1000000	7579 ns/op
-func Benchmark_Repl_TemplateReplace(b *testing.B) {
-	tmpl := template.New("tt")
-	template.Must(tmpl.Delims("${", "}").Parse("azaza ${ .Name } zazaz. "))
-	for i := 0; i < b.N; i++ {
-		tmpl.Execute(os.Stdout, p)
-	}
-}
+var (
+	testReplTmpl = template.New("tt")
+)
+
+// go test -v xr/snippets -bench ^Benchmark_Repl_ -run ^$
+
+//// 1000000	7579 ns/op
+//func Benchmark_Repl_TemplateReplace(b *testing.B) {
+//	template.Must(testReplTmpl.Delims("${", "}").Parse("azaza ${ .Name } zazaz. "))
+//	for i := 0; i < b.N; i++ {
+//		testReplTmpl.Execute(os.Stdout, p)
+//	}
+//}
 
 // 1000000	1270 ns/op
 func Benchmark_Repl_RxReplaceAllString(b *testing.B) {
-	var rx = regexp.MustCompile(`\$\{([\w]{1,1000})\}`)
 	for i := 0; i < b.N; i++ {
-		rx.ReplaceAllString(`azaza ${Name} zazaz. `, `Mary`)
+		testReplRx.ReplaceAllString(`azaza ${Name} zazaz. `, `Mary`)
 	}
 }
 
 // 1000000	1246 ns/op
 func Benchmark_Repl_RxReplaceAll(b *testing.B) {
-	var rx = regexp.MustCompile(`\$\{([\w]{1,1000})\}`)
 	z := []byte(`azaza ${Name} zazaz. `)
 	v := []byte(`Mary`)
 	for i := 0; i < b.N; i++ {
-		rx.ReplaceAll(z, v)
+		testReplRx.ReplaceAll(z, v)
 	}
 }
 
