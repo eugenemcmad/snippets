@@ -11,43 +11,55 @@ const (
 	HREF_ATTR = `href`
 	SRC_ATTR  = `src`
 
-	ActionRedirect = global.ActionRedirect
-	ActionNo       = global.ActionNo
+	ActionRedirect = global.ActionRedirect // 0
+	ActionNo       = global.ActionNo       // 9
 )
 
 var (
 	rxTypeHttpUrlPtrnInHtml = regexp.MustCompile(global.TYPE_HTTP_URL_PTRN_IN_HTML)
 	rxHttpUrlPtrnInText     = regexp.MustCompile(global.HTTP_URL_PTRN_IN_TEXT)
 )
+
 var (
-	tstHtml = `
-	<b>Hello world ${email}</b> <br/>
+	tstHtml = `<br/>
+<b>Hello world ${email}</b> <br/>
 <a href="http://rm.regium.com" target="_blank" > zhmyak </a>  your isp:${edg}? <br/>
 <a href="rm.regium.com" target="_blank" > invalid-link </a> <br/>
+<a src="http://rm.regium.com/questandrest/img/logo.png" alt="" width="161" height="102" /> <br/>
 <div class="image" style="font-size: 12px;font-style: normal;font-weight: 400;" align="center">
           <img style="display: block;border: 0;max-width: 161px;" src="${img}/questandrest/img/logo.png" alt="" width="161" height="102" />
         </div> <br/>
-<a href="${unsub}" target="_blank" style="color:#00addb; text-decoration: none;">Unsubscribe</a></span>`
+<a href="${unsub}" target="_blank" style="color:#00addb; text-decoration: none;">Unsubscribe</a></span>
+<a href="https://rm.regium.com/close?a=b&c=end" target="_blank" > close me </a>`
 )
+
+// go test -v xr/snippets -bench ^Benchmark_RXFN_ -run ^$
 
 // 3321 ns/op
 func Benchmark_RXFN_RxFn(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		setSimpleLinksToHtml_RX(tstHtml, "", true)
+		setSimpleLinksToHtml_RX(tstHtml, "")
+	}
+}
+
+// 3321 ns/op
+func Benchmark_RXFN_UtFn(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		setSimpleLinksToHtml_UT(tstHtml, "")
 	}
 }
 
 func TestRcFunc(t *testing.T) {
 
-	fmt.Printf("setSimpleLinksToHtml_RX(): %v \n", setSimpleLinksToHtml_RX(tstHtml, "", true))
+	fmt.Printf("setSimpleLinksToHtml_RX(): %v\n\n", setSimpleLinksToHtml_RX(tstHtml, ""))
 
-	fmt.Printf("setSimpleLinksToHtml_UT(): %v \n", setSimpleLinksToHtml_UT(tstHtml, "", true))
+	fmt.Printf("setSimpleLinksToHtml_UT(): %v\n\n", setSimpleLinksToHtml_UT(tstHtml, ""))
 
 }
 
 // Set open/simple redirect & src links to html content. TODO: OPTIMIZ 0000 WINNER
 // ` (href|src)="https?://([a-z0-9+-~_/.:;=#%$@&{}]{5,1000})"`
-func setSimpleLinksToHtml_RX( /*trackParams trackParams,*/ str, trackDomain string, https bool) string {
+func setSimpleLinksToHtml_RX( /*trackParams trackParams,*/ str, trackDomain string) string {
 	return rxTypeHttpUrlPtrnInHtml.ReplaceAllStringFunc(str, func(src string) string {
 		typeAttr := rxTypeHttpUrlPtrnInHtml.ReplaceAllString(src, `$1`) // (href|src)
 		url := rxTypeHttpUrlPtrnInHtml.ReplaceAllString(src, `$2`)      // pure url
@@ -66,7 +78,7 @@ func setSimpleLinksToHtml_RX( /*trackParams trackParams,*/ str, trackDomain stri
 		//if err != nil {
 		//	return ``
 		//}
-		newLink := "HTTP://" + url + "-AAAA-" + typeAttr + "-ZZZZ-"
+		newLink := "HTTP://" + url + "-ATTR-IS-" + typeAttr + "-END"
 
 		repLink := start + newLink + `"`
 
@@ -75,7 +87,7 @@ func setSimpleLinksToHtml_RX( /*trackParams trackParams,*/ str, trackDomain stri
 }
 
 // ` (href|src)="https?://([a-z0-9+-~_/.:;=#%$@&{}]{5,1000})"`
-func setSimpleLinksToHtml_UT( /*trackParams trackParams,*/ str, trackDomain string, https bool) string {
+func setSimpleLinksToHtml_UT(str, trackDomain string) string {
 
 	// find start: (href|src)="https?://(
 	// find end:   "
@@ -83,20 +95,61 @@ func setSimpleLinksToHtml_UT( /*trackParams trackParams,*/ str, trackDomain stri
 	// get url origin
 	// get url result
 	// replace
-	var res string
-	var l, actionId int
+	var res, url string
+	var l0, l1, r0, actionId int
+	var in bool
+	for i := 0; i < len(str)-14; i++ {
 
-	for i := 0; i < len(str)-10; i++ {
-		if str[i:i+11] == ` href="http` {
+		switch {
+		case str[i:i+15] == ` href="https://`:
+			l0 = i
+			i += 14
+			l1 = l0 + 7
+			in = true
 			actionId = ActionRedirect
-		} else if str[i:i+10] == ` src="http` {
+			break
+		case str[i:i+14] == ` href="http://`:
+			l0 = i
+			i += 13
+			l1 = l0 + 7
+			in = true
+			actionId = ActionRedirect
+			break
+		case str[i:i+14] == ` src="https://`:
+			l0 = i
+			i += 13
+			l1 = l0 + 6
+			in = true
 			actionId = ActionNo
-		} else {
+			break
+		case str[i:i+13] == ` src="http://`:
+			l0 = i
+			i += 12
+			l1 = l0 + 6
+			in = true
+			actionId = ActionNo
+			break
+		case in && str[i] == ' ': // Error - skip pattern
+			in = false
+			actionId = 0
+			//fmt.Printf("[ERR] '%v' l:%d, %d aid:%v \n", str[l0:l0+20], l0, l1, actionId)
+			break
+		case in && str[i:i+2] == `" `: // Pattern complete
+			in = false
+			url = str[l1:i]
+			res += str[r0:l1] + "[START[" + url + "]END]"
+			r0 = i
+			fmt.Printf("'%v' l:%d, %d aid:%v \n", url, l0, l1, actionId)
+			break
+		default:
 			continue
 		}
-		l = i
-		fmt.Printf("%v l:%d, aid:%v \n", str[i:i+5], l, actionId)
+
+		//fmt.Printf("[%v] l:%d, aid:%v \n", str[l0:l0+20], l0, actionId)
 	}
+
+	res += str[r0:]
+	actionId++ // test compatible
 
 	return res
 }
