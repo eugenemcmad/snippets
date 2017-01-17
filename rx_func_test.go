@@ -33,17 +33,17 @@ var (
 <a href="https://rm.regium.com/close?a=b&c=end" target="_blank" > close me </a>`
 )
 
-// go test -v xr/snippets -bench ^Benchmark_RXFN_ -run ^$
+// go test -v xr/snippets -bench ^Benchmark_RXLHFN_ -run ^$
 
 // 3321 ns/op
-func Benchmark_RXFN_RxFn(b *testing.B) {
+func Benchmark_RXLHFN_RxFn(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		setSimpleLinksToHtml_RX(tstHtml, "")
 	}
 }
 
 // 3321 ns/op
-func Benchmark_RXFN_UtFn(b *testing.B) {
+func Benchmark_RXLHFN_UtFn(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		setSimpleLinksToHtml_UT(tstHtml, "")
 	}
@@ -75,9 +75,6 @@ func setSimpleLinksToHtml_RX( /*trackParams trackParams,*/ str, trackDomain stri
 		start := rxTypeHttpUrlPtrnInHtml.ReplaceAllString(src, ` $1="`)
 
 		//newLink, err := getActLink(trackParams, actionId, trackDomain, https, url)
-		//if err != nil {
-		//	return ``
-		//}
 		newLink := "HTTP://" + url + "-ATTR-IS-" + typeAttr + "-END"
 
 		repLink := start + newLink + `"`
@@ -97,7 +94,7 @@ func setSimpleLinksToHtml_UT(str, trackDomain string) string {
 	// replace
 	var res, url string
 	var l0, l1, r0, actionId int
-	var in bool
+	var in, isSrc bool
 	for i := 0; i < len(str)-14; i++ {
 
 		switch {
@@ -106,6 +103,7 @@ func setSimpleLinksToHtml_UT(str, trackDomain string) string {
 			i += 14
 			l1 = l0 + 7
 			in = true
+			isSrc = false
 			actionId = ActionRedirect
 			break
 		case str[i:i+14] == ` href="http://`:
@@ -113,6 +111,7 @@ func setSimpleLinksToHtml_UT(str, trackDomain string) string {
 			i += 13
 			l1 = l0 + 7
 			in = true
+			isSrc = false
 			actionId = ActionRedirect
 			break
 		case str[i:i+14] == ` src="https://`:
@@ -120,6 +119,7 @@ func setSimpleLinksToHtml_UT(str, trackDomain string) string {
 			i += 13
 			l1 = l0 + 6
 			in = true
+			isSrc = true
 			actionId = ActionNo
 			break
 		case str[i:i+13] == ` src="http://`:
@@ -127,6 +127,7 @@ func setSimpleLinksToHtml_UT(str, trackDomain string) string {
 			i += 12
 			l1 = l0 + 6
 			in = true
+			isSrc = true
 			actionId = ActionNo
 			break
 		case in && str[i] == ' ': // Error - skip pattern
@@ -137,7 +138,12 @@ func setSimpleLinksToHtml_UT(str, trackDomain string) string {
 		case in && str[i:i+2] == `" `: // Pattern complete
 			in = false
 			url = str[l1:i]
-			res += str[r0:l1] + "[START[" + url + "]END]"
+			if isSrc {
+				res += str[r0:l0] + ` src="http://` + "[START[" + url + "]END]"
+			} else {
+				res += str[r0:l0] + ` href="http://` + "[START[" + url + "]END]"
+			}
+
 			r0 = i
 			fmt.Printf("'%v' l:%d, %d aid:%v \n", url, l0, l1, actionId)
 			break
@@ -152,4 +158,40 @@ func setSimpleLinksToHtml_UT(str, trackDomain string) string {
 	actionId++ // test compatible
 
 	return res
+}
+
+// Set open/simple redirect & src links to text content.
+// `([\s\(]|^)https?://([a-z0-9+-~_/.:;=#%$@&{}]{5,1000})([\n\s\)]|$)`
+func setSimpleLinksToText_RX( /*trackParams trackParams,*/ str, trackDomain string) string {
+	return rxHttpUrlPtrnInText.ReplaceAllStringFunc(str, func(src string) string {
+
+		start := rxHttpUrlPtrnInText.ReplaceAllString(src, `$1`) // pre ([\s\(]|^)  ==       [' ', '(', '{START_STRING}']
+		url := rxHttpUrlPtrnInText.ReplaceAllString(src, `$2`)   // pure url
+		end := rxHttpUrlPtrnInText.ReplaceAllString(src, `$3`)   // end ([\n\s\)]|$)== ['\n', ' ', ')', '{END_STRING}']
+
+		//newLink, err := getActLink(trackParams, ActionRedirect, trackDomain, url)
+		newLink := "HTTP://" + url + "-ATTR-IS-" + "ActionRedirect" + "-END"
+
+		repLink := start + newLink + end
+
+		return repLink
+	})
+}
+
+// Set open/simple redirect & src links to text content.
+// `([\s\(]|^)https?://([a-z0-9+-~_/.:;=#%$@&{}]{5,1000})([\n\s\)]|$)`
+func setSimpleLinksToText_UT( /*trackParams trackParams,*/ str, trackDomain string) string {
+	return rxHttpUrlPtrnInText.ReplaceAllStringFunc(str, func(src string) string {
+
+		start := rxHttpUrlPtrnInText.ReplaceAllString(src, `$1`) // pre ([\s\(]|^)  ==       [' ', '(', '{START_STRING}']
+		url := rxHttpUrlPtrnInText.ReplaceAllString(src, `$2`)   // pure url
+		end := rxHttpUrlPtrnInText.ReplaceAllString(src, `$3`)   // end ([\n\s\)]|$)== ['\n', ' ', ')', '{END_STRING}']
+
+		//newLink, err := getActLink(trackParams, ActionRedirect, trackDomain, url)
+		newLink := "HTTP://" + url + "-ATTR-IS-" + "ActionRedirect" + "-END"
+
+		repLink := start + newLink + end
+
+		return repLink
+	})
 }
