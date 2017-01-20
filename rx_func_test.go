@@ -1,8 +1,10 @@
 package tests
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 	"xr/xutor/global"
 )
@@ -18,6 +20,12 @@ const (
 var (
 	rxTypeHttpUrlPtrnInHtml = regexp.MustCompile(global.TYPE_HTTP_URL_PTRN_IN_HTML)
 	rxHttpUrlPtrnInText     = regexp.MustCompile(global.HTTP_URL_PTRN_IN_TEXT)
+	rxImgTag                = regexp.MustCompile(`\$\{(img)\}`)
+	rxUnsubTag              = regexp.MustCompile(`\$\{unsub\}`)
+
+	ImgPlacementBytes   = []byte("${img}")
+	httpImgReplPref     = []byte("http://img.")
+	UnsubPlacementBytes = []byte("${unsub}")
 )
 
 var (
@@ -29,6 +37,7 @@ var (
 <div class="image" style="font-size: 12px;font-style: normal;font-weight: 400;" align="center">
           <img style="display: block;border: 0;max-width: 161px;" src="${img}/questandrest/img/logo.png" alt="" width="161" height="102" />
         </div> <br/>
+<a src="${img}example/hello.gif" alt="" width="161" height="102" /> <br/>
 <a href="${unsub}" target="_blank" style="color:#00addb; text-decoration: none;">Unsubscribe</a></span>
 <a href="https://rm.regium.com/close?a=b&c=end" target="_blank" > close me </a>`
 
@@ -38,6 +47,8 @@ http://rm.regium.com/10101010 http://rm.regium.com/20202020 (http://rm.regium.co
 www.wrong-uri.com
 https://rm.regium.com/50505050
 end http://rm.regium.com/60606060`
+
+	tstUnsublink = "http://xr.xrtd/a101/b589/c894/d784"
 )
 
 // go test -v xr/snippets -bench ^Benchmark_RXLHFN_ -run ^$
@@ -80,6 +91,56 @@ func Benchmark_RXLTFN_UtFn(b *testing.B) {
 func TestLTextFunc(t *testing.T) {
 	fmt.Printf("setSimpleLinksToText_RX(): %v\n\n", setSimpleLinksToText_RX(tstTxt, ""))
 	fmt.Printf("setSimpleLinksToText_UT(): %v\n\n", setSimpleLinksToText_UT(tstTxt, ""))
+}
+
+func TestImgFunc(t *testing.T) {
+	h1, err := SetImgLinks_RX(tstHtml, "xrtd")
+	fmt.Printf("SetImgLinks_RX(): %v\n\n err:%v\n\n", h1, err)
+
+	h2, err := SetImgLinks_UT(tstHtml, "xrtd")
+	fmt.Printf("SetImgLinks_UT(): %v\n\n err:%v\n\n", h2, err)
+}
+
+// go test -v xr/snippets -bench ^Benchmark_IMG_ -run ^$
+
+// 2728 ns/op
+func Benchmark_IMG_RxFn(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		SetImgLinks_RX(tstHtml, "xrts")
+	}
+}
+
+// 1449 ns/op
+func Benchmark_IMG_UtFn(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		SetImgLinks_UT(tstHtml, "xrts")
+	}
+}
+
+func TestUnsubFunc(t *testing.T) {
+	fmt.Printf("original: %v\n\n unsublink:%v\n\n", tstHtml, tstUnsublink)
+
+	h1, err := SetUnsubLinks_RX(tstHtml, tstUnsublink)
+	fmt.Printf("SetUnsubLinks_RX(): %v\n\n err:%v\n\n", h1, err)
+
+	h2, err := SetUnsubLinks_UT(tstHtml, tstUnsublink)
+	fmt.Printf("SetUnsubLinks_UT(): %v\n\n err:%v\n\n", h2, err)
+}
+
+// go test -v xr/snippets -bench ^Benchmark_UNS_ -run ^$
+
+// 2001 ns/op
+func Benchmark_UNS_RxFn(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		SetUnsubLinks_RX(tstHtml, tstUnsublink)
+	}
+}
+
+// 1423 ns/op
+func Benchmark_UNS_UtFn(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		SetUnsubLinks_UT(tstHtml, tstUnsublink)
+	}
 }
 
 // Set open/simple redirect & src links to html content. TODO: OPTIMIZ 0000 WINNER
@@ -232,4 +293,92 @@ func setSimpleLinksToText_UT(str, trackDomain string) string {
 	res += str[r0:]
 
 	return res
+}
+
+// Set specific src links.
+//  `src="${img}example/hello.gif"` e.g.
+//  return IError.
+func SetImgLinks_RX(in, trackdomain string) (string, error) {
+	if in == "" {
+		return "", fmt.Errorf("set img link fail - input html is empty")
+	}
+	if trackdomain == "" {
+		return "", fmt.Errorf("set img link fail - tracking domain is empty")
+	}
+
+	s := rxImgTag.ReplaceAllStringFunc(in, func(src string) string {
+		pref := string(src[2 : len(src)-1])
+		switch {
+		case strings.HasPrefix(pref, "img"): // `img`
+			imgLink := fmt.Sprintf(`http://%s.%s/`, `img`, trackdomain)
+			return imgLink
+		default:
+			return ""
+		}
+	})
+
+	return s, nil
+}
+
+// Set specific src links.
+//  `src="${img}example/hello.gif"` e.g.
+//  return IError.
+func SetImgLinks_UT(in, trackdomain string) (string, error) {
+	if in == "" {
+		return "", fmt.Errorf("set img link fail - input html is empty")
+	}
+	if trackdomain == "" {
+		return "", fmt.Errorf("set img link fail - tracking domain is empty")
+	}
+
+	var buf bytes.Buffer
+	buf.Write(httpImgReplPref)
+	buf.WriteString(trackdomain)
+	buf.WriteByte('/')
+
+	var res = string(bytes.Replace([]byte(in), ImgPlacementBytes, buf.Bytes(), -1))
+
+	return res, nil
+}
+
+// Set specific unsubscribe url.
+//  Make specific link and replace `${unsub}`.
+//  return IError.
+func SetUnsubLinks_RX(in, unsublink string) (string, error) {
+	if in == "" {
+		return "", fmt.Errorf("set unsub link fail - input text/html is empty")
+	}
+	if unsublink == "" {
+		return "", fmt.Errorf("set unsub link fail - input unsublink text/html is empty")
+	}
+
+	s := rxUnsubTag.ReplaceAllStringFunc(in, func(src string) string {
+		pref := string(src[2 : len(src)-1])
+		switch {
+
+		case strings.HasPrefix(pref, `unsub`): // `unsub`
+			return unsublink
+
+		default:
+			return ""
+		}
+	})
+
+	return s, nil
+}
+
+// Set specific unsubscribe url.
+//  Make specific link and replace `${unsub}`.
+//  return IError.
+func SetUnsubLinks_UT(in, unsublink string) (string, error) {
+	if in == "" {
+		return "", fmt.Errorf("set unsub link fail - input text/html is empty")
+	}
+	if unsublink == "" {
+		return "", fmt.Errorf("set unsub link fail - input unsublink text/html is empty")
+	}
+
+	var res = string(bytes.Replace([]byte(in), UnsubPlacementBytes, []byte(unsublink), -1))
+
+	return res, nil
 }
