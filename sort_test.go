@@ -13,18 +13,18 @@ func TestRnd1(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	for i := 0; i < 10; i++ {
 
-		jj := rndInt(ii)
-		fmt.Println(jj)
+		shuffle(ii)
+		fmt.Println(ii)
 	}
 
 }
 
 // Test gnome sort algorithm
 func TestGnomeSortAsc(t *testing.T) {
-	ii := []int{0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 50, 100, -1, -10, -100, -1000}
+	a := []int{0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 50, 100, -1, -10, -100, -1000}
 
 	rand.Seed(time.Now().UnixNano())
-	a := rndInt(ii)
+	shuffle(a)
 	fmt.Println(a)
 	a = sortAsc(a)
 	fmt.Println(a)
@@ -32,10 +32,10 @@ func TestGnomeSortAsc(t *testing.T) {
 
 // Test gnome sort algorithm
 func TestGnomeSortDsc(t *testing.T) {
-	ii := []int{0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 50, 100, -1, -10, -100, -1000}
+	a := []int{0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 50, 100, -1, -10, -100, -1000}
 
 	rand.Seed(time.Now().UnixNano())
-	a := rndInt(ii)
+	shuffle(a)
 	fmt.Println(a)
 	a = sortDsc(a)
 	fmt.Println(a)
@@ -71,11 +71,9 @@ func sortDsc(a []int) []int {
 	return a
 }
 
-func rndInt(ii []int) []int {
-	jj := make([]int, len(ii))
-	xx := rand.Perm(len(ii))
-	for i, x := range xx {
-		jj[i] = ii[x]
+func shuffle(a []int) {
+	for i := range a {
+		j := rand.Intn(i + 1)
+		a[i], a[j] = a[j], a[i]
 	}
-	return jj
 }
