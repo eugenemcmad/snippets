@@ -31,6 +31,7 @@ func TestPkByEmail(t *testing.T) {
 		"kozlov.a.a.62@gmail.com",
 		"kenny62rzn17@gmail.com",
 		"activate@liveintent.com",
+		"shpenkshpenk@gmail.com",
 	}
 
 	for _, eml := range emails {

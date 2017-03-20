@@ -7,6 +7,8 @@ import (
 	"time"
 	"xr/xutor/ssdb"
 	"xr/xutor/utils"
+
+	"github.com/golang/glog"
 )
 
 func TestSsdbFlushCmd(t *testing.T) {
@@ -61,6 +63,47 @@ func TestSsdbFlushCln(t *testing.T) {
 	fmt.Printf("clearAll() total: %d,  err:%v\n", cnt, ecr)
 	fmt.Println(".................................")
 
+}
+
+func TestSsdbCountCmd(t *testing.T) {
+	//host := "104.155.41.252"
+
+	// PREDZ
+	//host := "136.243.39.69"
+	//conn, err := ssdb.GetConnector(host, 8888, 0, 0)
+
+	// WARMZ
+	host := "136.243.39.70"
+	conn, err := ssdb.GetConnector(host, 8897, 0, 0)
+
+	if err != nil {
+		fmt.Println("Connect Error:", err)
+		return
+	}
+	defer conn.Close()
+
+	sk := "!"
+	ek := "z"
+
+	var b = 0
+	for {
+		reply := conn.Cmd("scan", sk, ek, 10000)
+		if reply.State != "ok" {
+			glog.Fatal("Not ok")
+		}
+
+		kvs := reply.Hash()
+		if len(kvs) == 0 {
+			break
+		}
+
+		b += len(kvs)
+		sk = kvs[len(kvs)-1].Key
+	}
+
+	fmt.Println(b)
+
+	fmt.Println(".................................")
 }
 
 func TestSsdbKeys(t *testing.T) {
